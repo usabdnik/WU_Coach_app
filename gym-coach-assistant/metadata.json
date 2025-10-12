@@ -1,0 +1,5 @@
+{
+  "name": "Gym Coach Assistant",
+  "description": "An application for a coach to track the performance and goals of student athletes, with features for searching, grouping, and editing records. Designed for mobile use with offline capabilities and manual data synchronization.",
+  "requestFramePermissions": []
+}

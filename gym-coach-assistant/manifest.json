@@ -1,0 +1,21 @@
+{
+  "name": "Gym Coach Assistant",
+  "short_name": "Gym Coach",
+  "description": "An application for a coach to track the performance and goals of student athletes, with features for searching, grouping, and editing records. Designed for mobile use with offline capabilities and manual data synchronization.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/vite.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
