@@ -6,6 +6,7 @@ import PerformanceChart from './PerformanceChart';
 import RecordModal from './RecordModal';
 import GoalManager from './GoalManager';
 import { PencilIcon } from './icons';
+import api from '../services/api';
 
 interface StudentDetailViewProps {
     student: Student;
@@ -27,16 +28,18 @@ const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student: initialS
         return Math.max(0, ...student.performance.map(p => p[activeTab]));
     }, [student.performance, activeTab]);
 
-    const handleSaveRecords = (updatedPerformance: MonthlyPerformance[]) => {
+    const handleSaveRecords = async (updatedPerformance: MonthlyPerformance[]) => {
         const updatedStudent = { ...student, performance: updatedPerformance, updatedAt: new Date().toISOString() };
         setStudent(updatedStudent);
         onUpdateStudent(updatedStudent);
+        await api.updateStudent(updatedStudent);
     };
-    
-    const handleGroupChange = (newGroup: string) => {
+
+    const handleGroupChange = async (newGroup: string) => {
         const updatedStudent = { ...student, group: newGroup, updatedAt: new Date().toISOString() };
         setStudent(updatedStudent);
         onUpdateStudent(updatedStudent);
+        await api.updateStudent(updatedStudent);
     };
 
     return (
