@@ -1,7 +1,7 @@
 
 import type { Goal, Exercise } from '../types';
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../services/mockData';
+import api from '../services/api';
 import { TargetIcon, CheckCircleIcon, PlusCircleIcon, XMarkIcon } from './icons';
 
 interface GoalManagerProps {
@@ -110,8 +110,13 @@ const GoalManager: React.FC<GoalManagerProps> = ({ studentId, studentFullName })
     fetchData();
   }, [studentId]);
 
-  const handleAddGoal = useCallback((newGoal: Goal) => {
-      setGoals(prev => [...prev, newGoal]);
+  const handleAddGoal = useCallback(async (newGoal: Goal) => {
+      try {
+        await api.addGoal(newGoal);
+        setGoals(prev => [...prev, newGoal]);
+      } catch (error) {
+        console.error('Failed to add goal:', error);
+      }
   }, []);
 
   if (isLoading) {

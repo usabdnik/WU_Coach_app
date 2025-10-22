@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Student } from './types';
-import api from './services/mockData';
+import api from './services/api';
 import Header from './components/Header';
 import StudentList from './components/StudentList';
 import StudentDetailView from './components/StudentDetailView';

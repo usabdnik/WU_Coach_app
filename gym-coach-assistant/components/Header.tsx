@@ -1,6 +1,7 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { SyncIcon, ArrowLeftIcon } from './icons';
+import api from '../services/api';
 
 interface HeaderProps {
     showBackButton: boolean;
@@ -9,12 +10,27 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ showBackButton, onBack }) => {
     const [isSyncing, setIsSyncing] = useState(false);
+    const [lastSync, setLastSync] = useState<string | null>(null);
 
-    const handleSync = useCallback(() => {
+    useEffect(() => {
+        const loadLastSync = async () => {
+            const timestamp = await api.getLastSync();
+            setLastSync(timestamp);
+        };
+        loadLastSync();
+    }, []);
+
+    const handleSync = useCallback(async () => {
         setIsSyncing(true);
-        setTimeout(() => {
+        try {
+            await api.syncWithServer();
+            const timestamp = await api.getLastSync();
+            setLastSync(timestamp);
+        } catch (error) {
+            console.error('Sync failed:', error);
+        } finally {
             setIsSyncing(false);
-        }, 2000);
+        }
     }, []);
 
     return (
@@ -27,14 +43,21 @@ const Header: React.FC<HeaderProps> = ({ showBackButton, onBack }) => {
                 )}
                 <h1 className="text-xl font-bold text-gray-800 dark:text-white">Gym Coach</h1>
             </div>
-            <button
-                onClick={handleSync}
-                disabled={isSyncing}
-                className="flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed"
-            >
-                <SyncIcon className={`w-5 h-5 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
-            </button>
+            <div className="flex flex-col items-end">
+                <button
+                    onClick={handleSync}
+                    disabled={isSyncing}
+                    className="flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed"
+                >
+                    <SyncIcon className={`w-5 h-5 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
+                </button>
+                {lastSync && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Синхр: {new Date(lastSync).toLocaleString('ru-RU')}
+                    </p>
+                )}
+            </div>
         </header>
     );
 };
