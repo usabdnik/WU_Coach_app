@@ -9,24 +9,59 @@ interface GoalManagerProps {
   studentFullName: string;
 }
 
-const GoalItem: React.FC<{ goal: Goal }> = ({ goal }) => {
+interface GoalItemProps {
+  goal: Goal;
+  onToggleComplete: (goalId: string, markAsComplete: boolean) => void;
+  onDelete: (goalId: string) => void;
+}
+
+const GoalItem: React.FC<GoalItemProps> = ({ goal, onToggleComplete, onDelete }) => {
   const isCompleted = !!goal.completionDate;
+
+  const handleToggle = () => {
+    onToggleComplete(goal.id, !isCompleted);
+  };
+
+  const handleDelete = () => {
+    if (window.confirm(`Удалить цель "${goal.exerciseName}"?\n\nЭто действие нельзя отменить.`)) {
+      onDelete(goal.id);
+    }
+  };
+
   return (
-    <div className={`p-4 rounded-lg flex items-start space-x-4 ${isCompleted ? 'bg-green-50 dark:bg-green-900/50' : 'bg-yellow-50 dark:bg-yellow-900/50'}`}>
-        <div className={`mt-1 ${isCompleted ? 'text-green-500' : 'text-yellow-500'}`}>
-            {isCompleted ? <CheckCircleIcon className="w-6 h-6" /> : <TargetIcon className="w-6 h-6" />}
-        </div>
-        <div>
-            <p className="font-bold text-gray-800 dark:text-gray-100">{goal.exerciseName}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-                Цель поставлена: {new Date(goal.setDate).toLocaleDateString()}
-            </p>
-            {isCompleted && (
-                <p className="text-sm text-green-700 dark:text-green-300 font-semibold">
-                    Выполнено: {new Date(goal.completionDate as string).toLocaleDateString()}
+    <div className={`p-4 rounded-lg ${isCompleted ? 'bg-green-50 dark:bg-green-900/50' : 'bg-yellow-50 dark:bg-yellow-900/50'}`}>
+        <div className="flex items-start space-x-4 mb-3">
+            <div className={`mt-1 ${isCompleted ? 'text-green-500' : 'text-yellow-500'}`}>
+                {isCompleted ? <CheckCircleIcon className="w-6 h-6" /> : <TargetIcon className="w-6 h-6" />}
+            </div>
+            <div className="flex-1">
+                <p className="font-bold text-gray-800 dark:text-gray-100">{goal.exerciseName}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Цель поставлена: {new Date(goal.setDate).toLocaleDateString()}
                 </p>
-            )}
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 italic">"{goal.notes}"</p>
+                {isCompleted && (
+                    <p className="text-sm text-green-700 dark:text-green-300 font-semibold">
+                        Выполнено: {new Date(goal.completionDate as string).toLocaleDateString()}
+                    </p>
+                )}
+                {goal.notes && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 italic">"{goal.notes}"</p>
+                )}
+            </div>
+        </div>
+        <div className="flex gap-2">
+            <button
+                onClick={handleToggle}
+                className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+                {isCompleted ? '↩️ Отменить' : '✅ Выполнено'}
+            </button>
+            <button
+                onClick={handleDelete}
+                className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+                🗑️
+            </button>
         </div>
     </div>
   );
@@ -119,6 +154,31 @@ const GoalManager: React.FC<GoalManagerProps> = ({ studentId, studentFullName })
       }
   }, []);
 
+  const handleToggleComplete = useCallback(async (goalId: string, markAsComplete: boolean) => {
+    try {
+      const completionDate = markAsComplete ? new Date().toISOString() : null;
+      await api.updateGoal(goalId, completionDate);
+
+      // Update local state
+      setGoals(prev => prev.map(g =>
+        g.id === goalId
+          ? { ...g, completionDate }
+          : g
+      ));
+    } catch (error) {
+      console.error('Failed to update goal:', error);
+    }
+  }, []);
+
+  const handleDelete = useCallback(async (goalId: string) => {
+    try {
+      await api.deleteGoal(goalId);
+      setGoals(prev => prev.filter(g => g.id !== goalId));
+    } catch (error) {
+      console.error('Failed to delete goal:', error);
+    }
+  }, []);
+
   if (isLoading) {
     return <div className="text-center p-4 text-gray-500 dark:text-gray-400">Загрузка целей...</div>;
   }
@@ -134,7 +194,14 @@ const GoalManager: React.FC<GoalManagerProps> = ({ studentId, studentFullName })
         </div>
       {goals.length > 0 ? (
         <div className="space-y-3">
-          {goals.map(goal => <GoalItem key={goal.id} goal={goal} />)}
+          {goals.map(goal => (
+            <GoalItem
+              key={goal.id}
+              goal={goal}
+              onToggleComplete={handleToggleComplete}
+              onDelete={handleDelete}
+            />
+          ))}
         </div>
       ) : (
         <p className="text-center text-gray-500 dark:text-gray-400 py-4">Цели еще не поставлены.</p>
