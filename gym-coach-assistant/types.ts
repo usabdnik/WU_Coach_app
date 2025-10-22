@@ -35,7 +35,7 @@ export interface Exercise {
 }
 
 export interface Goal {
-  id: number;
+  id: string;
   studentId: number;
   studentFullName: string;
   exerciseId: number;

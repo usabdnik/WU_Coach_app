@@ -43,7 +43,7 @@ const AddGoalModal: React.FC<{ studentId: number; studentFullName: string; onClo
         if (!selectedExercise) return;
 
         const newGoal: Goal = {
-            id: Date.now(),
+            id: crypto.randomUUID(),
             studentId,
             studentFullName,
             exerciseId: selectedExercise.id,
