@@ -12,9 +12,10 @@ interface PendingChange {
   athleteId?: number;
   athleteName?: string;
   goalId?: string;
-  action?: 'complete' | 'uncomplete' | 'delete';
+  action?: 'add' | 'complete' | 'uncomplete' | 'delete';
   completionDate?: string | null;
   data?: any;
+  goalData?: Goal;
 }
 
 class API {
@@ -119,8 +120,15 @@ class API {
     await this.init();
     await db.addGoal(goal);
 
-    // Note: new goals should be synced immediately or added to queue
-    console.log('🎯 New goal added:', goal.id);
+    // Add to pending changes queue
+    this.addPendingChange({
+      type: 'goal',
+      goalId: goal.id,
+      action: 'add',
+      goalData: goal
+    });
+
+    console.log('🎯 New goal added and queued for sync:', goal.id);
   }
 
   async updateGoal(goalId: string, completionDate: string | null): Promise<void> {
@@ -353,7 +361,34 @@ class API {
             console.error('Failed to update student:', result.error);
           }
         } else if (change.type === 'goal') {
-          if (change.action === 'delete') {
+          if (change.action === 'add' && change.goalData) {
+            console.log('📤 Adding new goal:', change.goalId);
+
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({
+                action: 'addGoal',
+                params: {
+                  goalData: {
+                    id: change.goalData.id,
+                    studentId: change.goalData.studentId,
+                    exerciseId: change.goalData.exerciseId,
+                    dateSet: change.goalData.setDate,
+                    dateCompleted: change.goalData.completionDate,
+                    notes: change.goalData.notes || ''
+                  }
+                }
+              })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+              successfulChanges.push(change);
+            } else {
+              console.error('Failed to add goal:', result.error);
+            }
+          } else if (change.action === 'delete') {
             console.log('📤 Deleting goal:', change.goalId);
 
             const response = await fetch(url, {
@@ -368,8 +403,10 @@ class API {
             const result = await response.json();
             if (result.success) {
               successfulChanges.push(change);
+            } else {
+              console.error('Failed to delete goal:', result.error);
             }
-          } else {
+          } else if (change.action === 'complete' || change.action === 'uncomplete') {
             console.log('📤 Updating goal:', change.goalId);
 
             const response = await fetch(url, {
@@ -380,7 +417,7 @@ class API {
                 params: {
                   goalData: {
                     id: change.goalId,
-                    completionDate: change.completionDate
+                    dateCompleted: change.completionDate
                   }
                 }
               })
@@ -389,6 +426,8 @@ class API {
             const result = await response.json();
             if (result.success) {
               successfulChanges.push(change);
+            } else {
+              console.error('Failed to update goal:', result.error);
             }
           }
         }
