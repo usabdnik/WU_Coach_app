@@ -233,8 +233,17 @@ class API {
 
   // Transform Google Sheets data to Student format
   private transformStudentFromSheets(data: any): Student {
+    console.log('🔄 Transforming student data:', {
+      id: data.id,
+      lastName: data.lastName,
+      monthlyRecords: data.monthlyRecords,
+      monthlyRecordsType: typeof data.monthlyRecords,
+      monthlyRecordsKeys: data.monthlyRecords ? Object.keys(data.monthlyRecords) : null
+    });
+
     const performance: MonthlyPerformance[] = GOOGLE_SHEETS_CONFIG.MONTHS.map((month, index) => {
       const record = data.monthlyRecords?.[index] || {};
+      console.log(`  📊 Month ${month} (index ${index}):`, record);
       return {
         month,
         [ExerciseType.PullUps]: record['Подтягивания'] || 0,
@@ -242,6 +251,8 @@ class API {
         [ExerciseType.Dips]: record['Брусья'] || 0,
       };
     });
+
+    console.log('✅ Transformed performance:', performance.slice(0, 3));
 
     return {
       id: data.id,
@@ -427,8 +438,10 @@ class API {
             const requestBody = {
               action: 'updateGoal',
               params: {
-                goalId: change.goalId,
-                dateCompleted: change.completionDate
+                goalData: {
+                  id: change.goalId,
+                  dateCompleted: change.completionDate
+                }
               }
             };
 
@@ -447,7 +460,7 @@ class API {
               successfulChanges.push(change);
               console.log('✅ Goal status updated successfully');
             } else {
-              console.error('❌ Failed to update goal:', result.error || result);
+              console.error('❌ Failed to update goal:', result.error || result.message || result);
             }
           }
         }
