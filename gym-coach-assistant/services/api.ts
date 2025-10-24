@@ -246,9 +246,9 @@ class API {
       console.log(`  📊 Month ${month} (index ${index}):`, record);
       return {
         month,
-        [ExerciseType.PullUps]: record['Подтягивания'] || 0,
-        [ExerciseType.PushUps]: record['Отжимания'] || 0,
-        [ExerciseType.Dips]: record['Брусья'] || 0,
+        [ExerciseType.PullUps]: record.pullUps || record['Подтягивания'] || 0,
+        [ExerciseType.PushUps]: record.pushUps || record['Отжимания'] || 0,
+        [ExerciseType.Dips]: record.dips || record['Брусья'] || 0,
       };
     });
 
