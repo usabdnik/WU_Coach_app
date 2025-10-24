@@ -290,32 +290,39 @@ class API {
     const url = GOOGLE_SHEETS_CONFIG.WEBAPP_URL;
 
     // Fetch students
-    console.log('📥 Fetching students...');
+    console.log('📥 Fetching students from:', `${url}?action=getAllStudents`);
     const studentsResponse = await fetch(`${url}?action=getAllStudents`);
     const studentsResult = await studentsResponse.json();
+    console.log('📥 Students response:', studentsResult);
 
     if (!studentsResult.success) {
-      throw new Error('Failed to fetch students');
+      console.error('❌ Failed to fetch students:', studentsResult.error);
+      throw new Error('Failed to fetch students: ' + (studentsResult.error || 'Unknown error'));
     }
 
+    console.log('📥 Raw students data:', studentsResult.data?.students?.slice(0, 2));
     const students = studentsResult.data.students.map((s: any) =>
       this.transformStudentFromSheets(s)
     );
+    console.log('📥 Transformed students:', students.slice(0, 2));
 
     // Fetch exercises
-    console.log('📥 Fetching exercises...');
+    console.log('📥 Fetching exercises from:', `${url}?action=getExercises`);
     const exercisesResponse = await fetch(`${url}?action=getExercises`);
     const exercisesResult = await exercisesResponse.json();
+    console.log('📥 Exercises response:', exercisesResult);
 
     const exercises = exercisesResult.success ? exercisesResult.data.exercises : [];
+    console.log('📥 Exercises:', exercises);
 
     // Fetch goals
-    console.log('📥 Fetching goals...');
+    console.log('📥 Fetching goals from:', `${url}?action=getGoals`);
     const goalsResponse = await fetch(`${url}?action=getGoals`);
     const goalsResult = await goalsResponse.json();
+    console.log('📥 Goals response:', goalsResult);
 
     const goals = goalsResult.success ? goalsResult.data.goals.map((g: any) => ({
-      id: g.id || crypto.randomUUID(),
+      id: String(g.id), // Конвертируем в строку для consistency
       studentId: g.studentId,
       studentFullName: g.studentName || '',
       exerciseId: g.exerciseId,
@@ -324,8 +331,10 @@ class API {
       completionDate: g.dateCompleted || null,
       notes: g.notes || ''
     })) : [];
+    console.log('📥 Transformed goals:', goals);
 
     // Save to IndexedDB
+    console.log('💾 Saving to IndexedDB...');
     await Promise.all([
       db.saveStudents(students),
       db.saveExercises(exercises),
@@ -364,29 +373,35 @@ class API {
           if (change.action === 'add' && change.goalData) {
             console.log('📤 Adding new goal:', change.goalId);
 
+            const requestBody = {
+              action: 'addGoal',
+              params: {
+                goalData: {
+                  id: change.goalData.id,
+                  studentId: change.goalData.studentId,
+                  exerciseId: change.goalData.exerciseId,
+                  dateSet: change.goalData.setDate,
+                  dateCompleted: change.goalData.completionDate,
+                  notes: change.goalData.notes || ''
+                }
+              }
+            };
+
+            console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
+
             const response = await fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'text/plain' },
-              body: JSON.stringify({
-                action: 'addGoal',
-                params: {
-                  goalData: {
-                    id: change.goalData.id,
-                    studentId: change.goalData.studentId,
-                    exerciseId: change.goalData.exerciseId,
-                    dateSet: change.goalData.setDate,
-                    dateCompleted: change.goalData.completionDate,
-                    notes: change.goalData.notes || ''
-                  }
-                }
-              })
+              body: JSON.stringify(requestBody)
             });
 
             const result = await response.json();
+            console.log('📥 Response:', result);
+
             if (result.success) {
               successfulChanges.push(change);
             } else {
-              console.error('Failed to add goal:', result.error);
+              console.error('❌ Failed to add goal:', result.error || result);
             }
           } else if (change.action === 'delete') {
             console.log('📤 Deleting goal:', change.goalId);
@@ -407,27 +422,32 @@ class API {
               console.error('Failed to delete goal:', result.error);
             }
           } else if (change.action === 'complete' || change.action === 'uncomplete') {
-            console.log('📤 Updating goal:', change.goalId);
+            console.log('📤 Updating goal status:', change.goalId, 'to', change.action);
+
+            const requestBody = {
+              action: 'updateGoal',
+              params: {
+                goalId: change.goalId,
+                dateCompleted: change.completionDate
+              }
+            };
+
+            console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
 
             const response = await fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'text/plain' },
-              body: JSON.stringify({
-                action: 'updateGoal',
-                params: {
-                  goalData: {
-                    id: change.goalId,
-                    dateCompleted: change.completionDate
-                  }
-                }
-              })
+              body: JSON.stringify(requestBody)
             });
 
             const result = await response.json();
+            console.log('📥 Response:', result);
+
             if (result.success) {
               successfulChanges.push(change);
+              console.log('✅ Goal status updated successfully');
             } else {
-              console.error('Failed to update goal:', result.error);
+              console.error('❌ Failed to update goal:', result.error || result);
             }
           }
         }
