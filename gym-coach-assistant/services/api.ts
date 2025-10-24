@@ -322,7 +322,7 @@ class API {
     console.log('📥 Goals response:', goalsResult);
 
     const goals = goalsResult.success ? goalsResult.data.goals.map((g: any) => ({
-      id: g.id || crypto.randomUUID(),
+      id: String(g.id), // Конвертируем в строку для consistency
       studentId: g.studentId,
       studentFullName: g.studentName || '',
       exerciseId: g.exerciseId,
@@ -425,11 +425,10 @@ class API {
             console.log('📤 Updating goal status:', change.goalId, 'to', change.action);
 
             const requestBody = {
-              action: 'updateGoalStatus',
+              action: 'updateGoal',
               params: {
                 goalId: change.goalId,
-                dateCompleted: change.completionDate,
-                isComplete: change.action === 'complete'
+                dateCompleted: change.completionDate
               }
             };
 
@@ -446,6 +445,7 @@ class API {
 
             if (result.success) {
               successfulChanges.push(change);
+              console.log('✅ Goal status updated successfully');
             } else {
               console.error('❌ Failed to update goal:', result.error || result);
             }
